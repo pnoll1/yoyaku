@@ -1,0 +1,120 @@
+{% extends 'base.html' %}
+  {% block head %}
+  {% endblock %}
+  {% block search %}
+  <form class="pure-form">
+    <fieldset>
+      <input id="search" name="search" type="text" placeholder="Restaurant Name">
+      <button id="search-button" type="submit" class="pure-button pure-button-primary" onclick="getLocation()">Go</button>
+    </fieldset>
+  </form>
+  {# tie this into clicking go #}
+  <div id="demo"></div>
+  <script>
+  function getLocation(callback) {
+      var promise = new Promise(function(resolve, reject) {
+          if (navigator.geolocation) {
+              navigator.geolocation.getCurrentPosition(
+                  function(position){
+                      resolve("@" + position.coords.latitude + "," + position.coords.longitude)
+                  }
+              );
+          } else {
+            reject("Unknown");
+          }
+      });
+
+      return promise;
+  }
+
+  var locationPromise = getLocation();
+  locationPromise
+    .then(function(loc) {
+      //var request = new XMLHttpRequest();
+      //request.open('GET', 'index?location='locat);
+    })
+    .catch()
+</script>
+  {% endblock %}
+  {% block content %}
+          {%if restaurant and not reserve%}
+          {% for place in restaurant %}
+          {% if expand != place.name %}
+          <div class="restaurant">
+          <a id="{{place.name}}"href="?expand={{place.name}}">
+          <h2>{{place.name}}{%if place.name_en%}{{place.name_en}}{%endif%}</h2>{% if place.city %}{{place.city|title}}{% endif %}
+          {%if place.cuisine%}{{place.cuisine|title }}{%endif%}
+          </a>
+          <hr>
+          </div>
+          {% elif expand==place.name %}
+          <h2>{{place.name}}{%if place.name_en%}{{place.name_en}}{%endif%}</h2>{% if place.city %}{{place.city|title}}<br>{% endif %}
+          {%if place.cuisine%}{{place.cuisine|title }}<br>{%endif%}
+          {%if place.opening_hours%}{{place.opening_hours}}{%endif%}
+          {%if place.outdoor_seating==yes%}Outdoor Seating{%endif%}{%if place.website%}{{place.website}}{%endif%}
+          {# {{place.expandable_menu}}{{place.english_friendly}} #}
+          <a class="pure-button" href="?reserve={{place.name}}"> Request Reservation </a>
+          <br>
+          <br>
+          <div id="map"></div>
+          <link rel="stylesheet" href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css"
+          integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
+          crossorigin=""/>
+          <script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js"
+          integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og=="
+          crossorigin=""></script>
+          <script>
+          var loc = {{location|tojson}};
+          var baselayers, ways, nodes, controls_layers, mymap, overlays, mapbox;
+
+          //var mapbox = L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
+          var mapbox = L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token={accessToken}', {
+              attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
+              minZoom: 10,
+              maxZoom: 18,
+              id: 'mapbox.streets',
+              accessToken: 'pk.eyJ1IjoicG5vbGwiLCJhIjoiY2pkNDNyNmtzMHRtOTMzcWZ0Y2szdzh3eCJ9.g8tszbsYH0bVCcj7v8RAEQ'
+          });
+          var baselayers = {
+              "Mapbox": mapbox
+          }
+          var mymap = L.map('map', {
+              center: [loc[1],loc[0]],
+              zoom: 15,
+              layers: [mapbox]
+          });
+          L.marker([loc[1],loc[0]],).addTo(mymap);
+          </script>
+
+          {% endif %}
+          {% endfor %}
+
+          {% elif reservation_submitted %}
+            Your reservation for {{reservation_submitted}} is being requested
+          {% elif reserve %}
+          {% else %}
+            Place not found <br><br>
+            <a class="pure-button" href="?reserve_freeform"> Freeform Reservation</a><br>
+            Click here to make a reservation for a restaurant that is not in our database
+          {% endif %}
+          {% if reserve %}
+          {# can add javascript for realtime hinting #}
+          <form class="pure-form">
+            <fieldset>
+              <input name="place" type="text" placeholder="Place" value="{{reserve}}">
+              <input name="name" type="text" placeholder="Name">
+              <input name="party_size" type="text" placeholder="party size">
+              <input name="time" type="text" placeholder="time">
+              <input name="reservation_submitted" type="hidden" value="yes">
+              <button type="submit" class="pure-button pure-button-primary">Reserve</button>
+            </fieldset>
+          </form>
+          {% endif %}
+          Data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a>
+    {% endblock %}
+    {% block js %}
+  {#   <script src="https://unpkg.com/leaflet@1.3.1/dist/leaflet.js"
+    integrity="sha512-/Nsx9X4HebavoBvEBuyp3I7od5tA0UzAxs+j83KgC8PU0kgB4XiK4Lfe4y4cgBtaRJQEIFCW+oC506aPT2L1zw=="
+    crossorigin=""></script>
+    <script src="{{static}}/js/map.js"></script>#}
+    {% endblock %}

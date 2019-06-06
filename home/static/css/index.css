@@ -1,0 +1,52 @@
+h2 {
+  margin: 8px;
+}
+
+.header {
+  padding: 0px 2em 0;
+}
+.header h1 {
+  font-weight: normal;
+}
+.header h2 {
+  color: #999;
+  font-weight: normal;
+}
+.header a {
+  text-decoration-line: none;
+  color: #000;
+}
+
+.restaurant a {
+  text-decoration-line: none;
+  color: #000;
+}
+.restaurant a:hover {
+  color: #777;
+}
+
+.hidden {
+  display: none;
+}
+
+#map {
+  height: 40vh;
+}
+
+#search {
+  width: 60%;
+  display: inline-block;
+  margin-bottom: 0px;
+}
+
+#search-button {
+  margin: 0px;
+}
+
+@media (min-width: 992px) {
+  #search {
+    width: 30%;
+  }
+}
+
+/*# sourceMappingURL=index.css.map */

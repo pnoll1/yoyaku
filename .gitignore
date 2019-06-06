@@ -1,0 +1,7 @@
+node_modules
+lib
+lib64
+bin
+share
+*.pyc
+pyvenv.cfg
