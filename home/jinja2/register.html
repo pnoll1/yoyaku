@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+  {% block content %}
+          <form class="pure-form" method="post">
+            <fieldset>
+              {{ csrf_input }}
+              <input name="first_name" type="text" placeholder="first name">
+              <input name="last_name" type="text" placeholder="last name">
+              <input name="email" type="text" placeholder="email">
+              <input name="username" type="text" placeholder="username">
+              <input name="password" type="password" placeholder="password">
+              <input name="password_confirm" type="password" placeholder="retype password">
+              <button type="submit" class="pure-button pure-button-primary">Login</button>
+            </fieldset>
+          </form>
+{% endblock %}
