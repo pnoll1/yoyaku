@@ -4,7 +4,6 @@ from django.contrib.auth.models import User
 from django.contrib import messages
 from .models import place
 import psycopg2
-from .models import planet_osm_point as point
 from django.contrib.gis.gdal import SpatialReference, CoordTransform
 from django.contrib.gis.measure import D, Distance
 from django.contrib.gis.geos import GEOSGeometry, Point
@@ -20,7 +19,7 @@ def index(request):
     #rows = cur.fetchall()
     #context['restaurant'] = rows
     # list a few restaurants (preferably near location)
-    context['restaurant'] = point.objects.all()[:5]
+    context['restaurant'] = place.objects.all()[:5]
     if request.GET.get('search'):
         # location from geoip2
         search = request.GET.get('search')
@@ -30,7 +29,7 @@ def index(request):
         #location_current = fromstr('POINT(136.84988469999996 35.05016499965509)',srid = 4326) #domes kitchen
         #ct = CoordTransform(SpatialReference(4326), SpatialReference(3857))
         #location_current.transform(ct)
-        search_result = point.objects.filter(name__icontains=search)
+        search_result = place.objects.filter(name__icontains=search)
         #search_result_dist = []
         #for i in search_result:
         #    c =0
@@ -48,13 +47,13 @@ def index(request):
     if request.GET.get('expand'):
         context['expand'] = request.GET.get('expand')
         # use uuid for lookup, keep search results and only expand selected one ideally
-        context['restaurant'] = point.objects.filter(name=request.GET.get('expand'))
+        context['restaurant'] = place.objects.filter(name=request.GET.get('expand'))
         # get coords of restaurant and transform for leaflet usage
-        location_current = GEOSGeometry('Point(136.84988469999996 35.05016499965509)',srid = 4326) #domes kitchen
-        ct = CoordTransform(SpatialReference(4326), SpatialReference(3857))
-        location_current.transform(ct)
-        print(location_current.coords)
-        point_qs = list(point.objects.filter(name=request.GET.get('expand')))
+        #location_current = GEOSGeometry('Point(136.84988469999996 35.05016499965509)',srid = 4326) #domes kitchen
+        #ct = CoordTransform(SpatialReference(4326), SpatialReference(3857))
+        #location_current.transform(ct)
+        #print(location_current.coords)
+        point_qs = list(place.objects.filter(name=request.GET.get('expand')))
         for i in point_qs:
             var = i
         location = var.way
@@ -66,7 +65,7 @@ def index(request):
     if request.GET.get('reserve') and request.user.is_authenticated:
         reserve_place = request.GET.get('reserve')
         context['reserve'] = request.GET.get('reserve')
-        context['restaurant'] = point.objects.filter(name=reserve_place) #likely return multiple, need to find by unique id
+        context['restaurant'] = place.objects.filter(name=reserve_place) #likely return multiple, need to find by unique id
     elif request.GET.get('reserve'):
         messages.error(request, 'You must be logged in to reserve')
         return redirect('/login')
