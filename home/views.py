@@ -90,10 +90,6 @@ def register(request):
     context['static'] = '/static'
     return render(request, 'register.html',context)
 
-def loc(request):
-    response.set_cookie(location, loc)
-
-
 def map(request):
     context = {}
     context['static'] = '/static'
