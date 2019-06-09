@@ -6,38 +6,42 @@
   * Pure CSS/js
   * jinja2
   * Django Templates for admin interface
+  * SASS
   * JS libs
-   * leaflet
-   * markercluster
+    * leaflet
+    * markercluster
   * possible
-   * Webpack or parcel? build pipelines
-   * NPM
+    * Webpack or parcel? build pipelines
+    * NPM
 
 # Backend
   * postgresql v10
   * osm2pgsql
-   * use script in /util to download osm data into postgres
+     * use script in /util to download osm data into postgres
   * possible
-   * mapbox search api
+    * mapbox search api
+    * google places api
 
 # Testing
-  * possible
-   * unit test
+  * unittest
+## Testing setup
+  * db user may need superuser in db to create objects for test
+  * development server is running
+  * ./manage.py test
 
 # Setup
  - setup venv
+ - activate venv
  - install dependencies
- - activate venv\
  - django-admin startproject “sitename”
  - fill in settings settings docs
  - python manage.py startapp “appname”
  - python manage.py runserver
  - python manage.py createsuperuser
-  - needed to allow use of admin interface
+   - needed to allow use of admin interface
  - install postgresql and postgis
  - create db named reservation
  - create postgis extension
  - setup user to match settings.py
  - import data using osm2pgsql, command in utils/overpass.sh
- - copy table to match django orm name CREATE TABLE home_planet_osm_point (like planet_osm_point including all);
  - good to go
