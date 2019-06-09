@@ -5,35 +5,12 @@
   <form class="pure-form">
     <fieldset>
       <input id="search" name="search" type="text" placeholder="Restaurant Name">
-      <button id="search-button" type="submit" class="pure-button pure-button-primary" onclick="getLocation()">Go</button>
+      <button id="search-button" type="button" class="pure-button pure-button-primary" onclick="fetchLocation()">Go</button>
     </fieldset>
   </form>
   {# tie this into clicking go #}
   <div id="demo"></div>
-  <script>
-  function getLocation(callback) {
-      var promise = new Promise(function(resolve, reject) {
-          if (navigator.geolocation) {
-              navigator.geolocation.getCurrentPosition(
-                  function(position){
-                      resolve("@" + position.coords.latitude + "," + position.coords.longitude)
-                  }
-              );
-          } else {
-            reject("Unknown");
-          }
-      });
-
-      return promise;
-  }
-
-  var locationPromise = getLocation();
-  locationPromise
-    .then(function(loc) {
-      //var request = new XMLHttpRequest();
-      //request.open('GET', 'index?location='locat);
-    })
-    .catch()
+  <script  src='{{static}}/js/getLocation.js'>
 </script>
   {% endblock %}
   {% block content %}

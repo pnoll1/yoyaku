@@ -6,4 +6,4 @@ urlpatterns = [
     path('?search', views.search),
     path('login', views.login),
     path('register', views.register),
-]
+    ]
