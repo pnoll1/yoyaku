@@ -8,6 +8,33 @@
       <button id="search-button" type="submit" class="pure-button pure-button-primary" onclick="getLocation()">Go</button>
     </fieldset>
   </form>
+  {# tie this into clicking go #}
+  <div id="demo"></div>
+  <script>
+  function getLocation(callback) {
+      var promise = new Promise(function(resolve, reject) {
+          if (navigator.geolocation) {
+              navigator.geolocation.getCurrentPosition(
+                  function(position){
+                      resolve("@" + position.coords.latitude + "," + position.coords.longitude)
+                  }
+              );
+          } else {
+            reject("Unknown");
+          }
+      });
+
+      return promise;
+  }
+
+  var locationPromise = getLocation();
+  locationPromise
+    .then(function(loc) {
+      //var request = new XMLHttpRequest();
+      //request.open('GET', 'index?location='locat);
+    })
+    .catch()
+</script>
   {% endblock %}
   {% block content %}
           {%if restaurant and not reserve%}

@@ -5,15 +5,41 @@ from django.contrib import messages
 from .models import place
 import psycopg2
 from django.contrib.gis.gdal import SpatialReference, CoordTransform
+from django.contrib.gis.measure import D, Distance
+from django.contrib.gis.geos import GEOSGeometry, Point
+from itertools import chain
+
+
 
 def index(request):
     context = {}
+    #conn = psycopg2.connect("dbname='reservation' user='pat' host='127.0.0.1' password='password'")
+    #cur=conn.cursor()
+    #cur.execute("SELECT osm_id,name FROM planet_osm_point LIMIT 5;")
+    #rows = cur.fetchall()
+    #context['restaurant'] = rows
+    # list a few restaurants (preferably near location)
     context['restaurant'] = place.objects.all()[:5]
     if request.GET.get('search'):
         # location from geoip2
         search = request.GET.get('search')
         # add geolocation to search, paginate results
+        #location_current = Point(136.84988469999996, 35.05016499965509,srid = 4326) #domes kitchen
+        #dome = point.objects.get(name="Dome's Kitchen")
+        #location_current = fromstr('POINT(136.84988469999996 35.05016499965509)',srid = 4326) #domes kitchen
+        #ct = CoordTransform(SpatialReference(4326), SpatialReference(3857))
+        #location_current.transform(ct)
         search_result = place.objects.filter(name__icontains=search)
+        #search_result_dist = []
+        #for i in search_result:
+        #    c =0
+        #    shit = i.way.distance(location_current)
+        #    print(shit)
+        #print(search_result_dist)
+        # filter by location
+        #search_result_spatial = point.objects.filter(way__distance_lt=(dome.way, D(m=5), 'spheroid'))#.annotate(distance=Distance(dome.way, field_name='way')).order_by('distance')
+        #search_result = list(chain(search_result,search_result_spatial))
+        #search_result = point.objects.filter(location_current__distance_lte=(way, D(mi=15))) #.distance(location_current, field_name='seller_current_location').order_by('distance')[:10]
         if search_result:
             context['restaurant'] = search_result
         else:
@@ -22,6 +48,11 @@ def index(request):
         context['expand'] = request.GET.get('expand')
         # use uuid for lookup, keep search results and only expand selected one ideally
         context['restaurant'] = place.objects.filter(name=request.GET.get('expand'))
+        # get coords of restaurant and transform for leaflet usage
+        #location_current = GEOSGeometry('Point(136.84988469999996 35.05016499965509)',srid = 4326) #domes kitchen
+        #ct = CoordTransform(SpatialReference(4326), SpatialReference(3857))
+        #location_current.transform(ct)
+        #print(location_current.coords)
         point_qs = list(place.objects.filter(name=request.GET.get('expand')))
         for i in point_qs:
             var = i
