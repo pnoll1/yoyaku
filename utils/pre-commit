@@ -1,0 +1,11 @@
+#! /usr/bin/python3
+import os
+try:
+    os.system('. bin/activate')
+except:
+    pass
+try:
+    os.system('./manage.py runserver &')
+except:
+    pass
+os.system('./manage.py test')
