@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+  {% block head %}
+  {% endblock %}
+  {% block search %}
+  <form class="pure-form">
+    <fieldset>
+      <input id="search" name="search" type="text" placeholder="Restaurant Name">
+      <button id="search-button" type="submit" class="pure-button pure-button-primary" onclick="getLocation()">Go</button>
+    </fieldset>
+  </form>
+  {% endblock %}
+  {% block content %}
+    We provide support some where
+    {% endblock %}
+    {% block js %}
+    {% endblock %}

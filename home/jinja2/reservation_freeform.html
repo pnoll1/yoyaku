@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+  {% block head %}
+  {% endblock %}
+  {% block search %}
+  <form class="pure-form">
+    <fieldset>
+      <input id="search" name="search" type="text" placeholder="Restaurant Name">
+      <button id="search-button" type="submit" class="pure-button pure-button-primary" onclick="getLocation()">Go</button>
+    </fieldset>
+  </form>
+  {% endblock %}
+  {% block content %}
+          <form class="pure-form">
+            <fieldset>
+              <input name="place" type="text" placeholder="Place">
+              {# address? #}
+              <input name="phone" type="tel" placeholder="Phone">
+              <input name="name" type="text" placeholder="Name">
+              <input name="party_size" type="text" placeholder="party size">
+              <input name="date" type="date" placeholder="date">
+              <input name="time" type="time" placeholder="time">
+              <input name="reservation_freeform_submitted" type="hidden" value="yes">
+              <button type="submit" class="pure-button pure-button-primary">Reserve</button>
+            </fieldset>
+          </form>
+    {% endblock %}
+    {% block js %}
+    {% endblock %}

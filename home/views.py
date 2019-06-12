@@ -2,12 +2,14 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.models import User
 from django.contrib import messages
-from .models import place
+from django.core.exceptions import ValidationError
+from .models import place, reservation
 import psycopg2
 from django.contrib.gis.gdal import SpatialReference, CoordTransform
 
 def index(request):
     context = {}
+    context['static'] = '/static'
     context['restaurant'] = place.objects.all()[:5]
     if request.GET.get('search'):
         # location from geoip2
@@ -30,19 +32,47 @@ def index(request):
         location.transform(ct)
         location = location.coords
         context['location'] = location
-    # need to login to creatte reservation
+    # need to login to create reservation
     if request.GET.get('reserve') and request.user.is_authenticated:
         reserve_place = request.GET.get('reserve')
         context['reserve'] = request.GET.get('reserve')
         context['restaurant'] = place.objects.filter(name=reserve_place) #likely return multiple, need to find by unique id
+    # freeform reservation
+    elif request.GET.get('reserve_freeform') and request.user.is_authenticated:
+        return render(request, 'reservation_freeform.html', context)
     elif request.GET.get('reserve'):
         messages.error(request, 'You must be logged in to reserve')
         return redirect('/login')
     if request.GET.get('reservation_submitted'):
         context['reservation_submitted'] = request.GET.get('place')
-        # check form inputs are valid
+        p = request.GET.get('place')
+        name = request.GET.get('name')
+        party_size = request.GET.get('party_size')
+        time = request.GET.get('time')
+        date = request.GET.get('date')
+        current_user = request.user
+        r = reservation(requested_by_user=current_user,name_reservation=name, name_restaurant=p, party_size=party_size, date=date, time=time, request_completed=False)
+        try:
+            r.full_clean
+        except ValidationError as e:
+            messages.error('e')
+        r.save()
+    elif request.GET.get('reservation_freeform_submitted'):
+        context['reservation_submitted'] = request.GET.get('place')
+        p = request.GET.get('place')
+        phone = request.GET.get('phone')
+        name = request.GET.get('name')
+        party_size = request.GET.get('party_size')
+        time = request.GET.get('time')
+        date = request.GET.get('date')
+        current_user = request.user
+        r = reservation(requested_by_user=current_user,name_reservation=name, name_restaurant=p, party_size=party_size, date=date, time=time, request_completed=False)
+        try:
+            r.full_clean
+        except ValidationError as e:
+            messages.error('e')
+        r.save()
         context['restaurant'] = ''
-    context['static'] = '/static'
     return render(request, 'index.html',context)
 
 def search(request):
@@ -89,6 +119,16 @@ def register(request):
     context = {}
     context['static'] = '/static'
     return render(request, 'register.html',context)
+
+def account(request):
+    context = {}
+    context['static'] = '/static'
+    return render(request, 'account.html',context)
+
+def support(request):
+    context = {}
+    context['static'] = '/static'
+    return render(request, 'support.html',context)
 
 def map(request):
     context = {}

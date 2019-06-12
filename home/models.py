@@ -1,6 +1,9 @@
 from django.contrib.gis.db import models
+from django.utils.timezone import now
+import uuid
 
 class place(models.Model):
+    uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.TextField()
     name_en = models.TextField(blank=True)
     city = models.TextField()
@@ -11,8 +14,7 @@ class place(models.Model):
     website = models.TextField(blank=True)
     # link to menu in static folder
     #menu = models.TextField(blank=True)
-    #phone = models.TextField(blank=True)
-    # uuid =models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    phone = models.TextField(blank=True)
     #osm_id
     city = models.TextField()
     way = models.PointField()
@@ -31,9 +33,10 @@ class reservation(models.Model):
     name_restaurant = models.TextField()
     party_size  = models.IntegerField()
     time = models.TimeField()
-    caller = models.TextField()
+    date = models.DateField(default=now)
+    caller = models.TextField(blank=True)
     request_completed = models.BooleanField()
-
+    # restaurant uuid should be tied to res as well
 
     def __str__(self):
-        return self.name_reservation
+        return self.name_reservation+''+self.name_restaurant
