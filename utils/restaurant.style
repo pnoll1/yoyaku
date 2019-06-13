@@ -21,6 +21,7 @@ node,way    cuisine                 text    linear
 node,way    outdoor_seating         text    linear
 node,way    website                 text    linear
 node,way    phone                   text    linear
+node,way    addr:full               text    linear
 node,way    building                text    polygon,nocolumn
 way         building:part           text    polygon,nocolumn
 node,way    harbour                 text    polygon,nocolumn

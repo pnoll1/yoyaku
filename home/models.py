@@ -24,7 +24,7 @@ class place(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'home_planet_osm_point'
+        db_table = 'planet_osm_point'
 
 
 class reservation(models.Model):
@@ -36,7 +36,8 @@ class reservation(models.Model):
     date = models.DateField(default=now)
     caller = models.TextField(blank=True)
     request_completed = models.BooleanField()
-    # restaurant uuid should be tied to res as well
+    # restaurant uuid should be tied to res as well OneToOneField
+    # phone OneToOneField
 
     def __str__(self):
         return self.name_reservation+''+self.name_restaurant

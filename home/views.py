@@ -23,20 +23,22 @@ def index(request):
     if request.GET.get('expand'):
         context['expand'] = request.GET.get('expand')
         # use uuid for lookup, keep search results and only expand selected one ideally
-        context['restaurant'] = place.objects.filter(name=request.GET.get('expand'))
-        point_qs = list(place.objects.filter(name=request.GET.get('expand')))
+        context['restaurant'] = place.objects.filter(uuid=request.GET.get('expand'))
+        print(context)
+        point_qs = list(place.objects.filter(uuid=request.GET.get('expand')))
         for i in point_qs:
             var = i
         location = var.way
         ct = CoordTransform(SpatialReference(3857), SpatialReference(4326))
         location.transform(ct)
         location = location.coords
+        print(location)
         context['location'] = location
     # need to login to create reservation
     if request.GET.get('reserve') and request.user.is_authenticated:
         reserve_place = request.GET.get('reserve')
         context['reserve'] = request.GET.get('reserve')
-        context['restaurant'] = place.objects.filter(name=reserve_place) #likely return multiple, need to find by unique id
+        context['restaurant'] = place.objects.filter(uuid=reserve_place) #likely return multiple, need to find by unique id
     # freeform reservation
     elif request.GET.get('reserve_freeform') and request.user.is_authenticated:
         return render(request, 'reservation_freeform.html', context)

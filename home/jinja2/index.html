@@ -12,21 +12,21 @@
   {% block content %}
           {%if restaurant and not reserve%}
           {% for place in restaurant %}
-          {% if expand != place.name %}
+          {% if expand != place.uuid|safe %}
           <div class="restaurant">
-          <a id="{{place.name}}"href="?expand={{place.name}}">
+          <a id="{{place.name}}" href="?expand={{place.uuid}}">
           <h2>{{place.name}}{%if place.name_en%}{{place.name_en}}{%endif%}</h2>{% if place.city %}{{place.city|title}}{% endif %}
           {%if place.cuisine%}{{place.cuisine|title }}{%endif%}
           </a>
           <hr>
           </div>
-          {% elif expand==place.name %}
+          {% elif expand==place.uuid|safe %}
           <h2>{{place.name}}{%if place.name_en%}{{place.name_en}}{%endif%}</h2>{% if place.city %}{{place.city|title}}<br>{% endif %}
           {%if place.cuisine%}{{place.cuisine|title }}<br>{%endif%}
           {%if place.opening_hours%}{{place.opening_hours}}{%endif%}
           {%if place.outdoor_seating==yes%}Outdoor Seating{%endif%}{%if place.website%}{{place.website}}{%endif%}
           {# {{place.expandable_menu}}{{place.english_friendly}} #}
-          <a class="pure-button" href="?reserve={{place.name}}"> Request Reservation </a>
+          <a class="pure-button" href="?reserve={{place.uuid}}"> Request Reservation </a>
           <br>
           <br>
           <div id="map"></div>
@@ -64,7 +64,6 @@
           Data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a>
           {% elif reservation_submitted %}
             Your reservation for {{reservation_submitted}} is being requested<br>
-          {% elif reserve %}
           {% else %}
             Place not found <br><br>
             <a class="pure-button" href="?reserve_freeform=yes"> Freeform Reservation</a><br>
