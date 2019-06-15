@@ -10,10 +10,19 @@
   </form>
   {% endblock %}
   {% block content %}
-      Review and edit reservation
-      change password
-      payment info
-      contact info
+  <ul>
+    <li>Username:{{user.username}}</li>
+    <li>First Name: {{user.first_name}}</li>
+    <li>Last Name: {{user.last_name}}</li>
+    <li>Email : {{user.email}}</li>
+    <li>change password</li>
+    <li>payment info</li>
+  </ul>
+  {% for reservation in reservations %}
+  {{reservation.name_reservation}}
+  {#display reservation details
+  display editable details#}
+  {% endfor %}
     {% endblock %}
     {% block js %}
     {% endblock %}

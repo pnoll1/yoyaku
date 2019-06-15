@@ -1,5 +1,6 @@
 from django.contrib.gis.db import models
 from django.utils.timezone import now
+from django.contrib.auth.models import AbstractUser
 import uuid
 
 class place(models.Model):
@@ -33,11 +34,22 @@ class reservation(models.Model):
     name_restaurant = models.TextField()
     party_size  = models.IntegerField()
     time = models.TimeField()
+    phone = models.TextField(default='')
     date = models.DateField(default=now)
     caller = models.TextField(blank=True)
     request_completed = models.BooleanField()
     # restaurant uuid should be tied to res as well OneToOneField
-    # phone OneToOneField
+
 
     def __str__(self):
         return self.name_reservation+''+self.name_restaurant
+
+    class Meta:
+        permissions=(
+        ('can_accept_calls', 'can accept calls'),
+        )
+
+#class myUser(AbstractUser):
+#    name_first = models.TextField()
+#    name_last = models.TextField()
+#    caller = models.BooleanField(blank=True)

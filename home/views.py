@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
-from django.contrib.auth import authenticate, login
-from django.contrib.auth.models import User
+from django.contrib.auth import authenticate, login, logout, get_user
+from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.models import User, Group
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from .models import place, reservation
@@ -38,7 +39,7 @@ def index(request):
     if request.GET.get('reserve') and request.user.is_authenticated:
         reserve_place = request.GET.get('reserve')
         context['reserve'] = request.GET.get('reserve')
-        context['restaurant'] = place.objects.filter(uuid=reserve_place) #likely return multiple, need to find by unique id
+        context['restaurant'] = place.objects.filter(uuid=reserve_place)
     # freeform reservation
     elif request.GET.get('reserve_freeform') and request.user.is_authenticated:
         return render(request, 'reservation_freeform.html', context)
@@ -68,9 +69,9 @@ def index(request):
         time = request.GET.get('time')
         date = request.GET.get('date')
         current_user = request.user
-        r = reservation(requested_by_user=current_user,name_reservation=name, name_restaurant=p, party_size=party_size, date=date, time=time, request_completed=False)
+        r = reservation(requested_by_user=current_user, phone=phone, name_reservation=name, name_restaurant=p, party_size=party_size, date=date, time=time, request_completed=False)
         try:
-            r.full_clean
+            r.full_clean()
         except ValidationError as e:
             messages.error('e')
         r.save()
@@ -88,35 +89,77 @@ def search(request):
         context[search_result]= 'Place not found'
     return render(request, 'index.html',context)
 
-def login(request):
+def login_view(request):
+    context = {}
+    context['static'] = '/static'
     username = request.POST.get('username')
     password = request.POST.get('password')
     user = authenticate(request, username=username, password=password)
     # Successfull login
-    if user is not None:
-        messages.success(request, 'Login Successfull')
+    if user is not None and request.method == 'POST':
         login(request, user)
+        messages.success(request, 'Login Successfull')
         # redirect to page they came from
-        redirect('/')
-        pass
+        return redirect('/')
     # login not yet tried
-    elif not username:
-        context = {}
-        context['static'] = '/static'
+    elif request.user.is_authenticated and request.method == 'GET':
+        messages.info(request, "You're already logged in")
+        return redirect('/')
+    elif request.method == 'GET' and user is None:
         return render(request, 'login.html',context)
     # failed login
     else:
         messages.error(request, 'Login Failed')
-        context = {}
-        context['static'] = '/static'
         return render(request, 'login.html',context)
 
+def logout_view(request):
+    logout(request)
+    return redirect('/')
+
 def register(request):
-    #FormView
-    # username exists
-    #if password and password_confirm:
-    #    if password != password_confirm:
-    #        messages.error(request, "Passwords don't match")
+    # check if form views be better
+    first_name = request.POST.get('first_name')
+    last_name = request.POST.get('last_name')
+    caller = request.POST.get('caller')
+    username = request.POST.get('username')
+    email = request.POST.get('email')
+    password = request.POST.get('password')
+    password_confirm = request.POST.get('password_confirm')
+    invite_code = request.POST.get('invite_code')
+    if username and email and password and password_confirm and invite_code:
+        if password != password_confirm:
+            messages.error(request,"The password fields must match")
+        invite_code = request.POST.get('invite_code')
+        invite_code_caller = 'isaac caller'
+        invite_code_user = 'isaac'
+        if invite_code == invite_code_user and not caller:
+            user = User(username=username, email=email, password=password, first_name=first_name, last_name=last_name)
+            try:
+                user.full_clean()
+            except ValidationError as e:
+                messages.error(request,e)
+            if not User.objects.filter(username=username):
+                User.objects.create_user(username=username, email=email, password=password, first_name=first_name, last_name=last_name)
+                messages.info(request, 'User created')
+                return redirect('/login')
+            messages.error(request, 'Username taken')
+        elif invite_code == invite_code_user and caller:
+            meassages.error(request, 'You marked caller but have a user invite code')
+        elif invite_code == invite_code_caller : # not working
+            user = User(username=username, email=email, password=password, first_name=first_name, last_name=last_name)
+            try:
+                user.full_clean()
+            except ValidationError as e:
+                messages.error(request,e)
+            if not User.objects.filter(username=username):
+                User.objects.create_user(username=username, email=email, password=password, first_name=first_name, last_name=last_name)
+                messages.info(request, 'User created')
+                group = Group.objects.get(name="callers")
+                #group.user_set.add(user)
+                user.groups.add(group)
+                return redirect('/login')
+    else:
+        messages.error(request, 'Fields missing')
     # send confirmation email
     context = {}
     context['static'] = '/static'
@@ -125,6 +168,17 @@ def register(request):
 def account(request):
     context = {}
     context['static'] = '/static'
+    if request.user.is_authenticated and request.user.has_perm('reservation.can_accept_calls'):
+        context['user'] = user
+        context['reservations'] = reservation.objects.filter(caller='')
+    elif request.user.is_authenticated:
+        user = get_user(request)
+        print('not caller')
+        context['user'] = get_user(request)
+        context['reservations'] = reservation.objects.filter(requested_by_user=user.username)
+    else:
+        messages.info(request,"You're not logged in")
+        return redirect('/')
     return render(request, 'account.html',context)
 
 def support(request):

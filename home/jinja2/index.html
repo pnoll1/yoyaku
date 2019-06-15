@@ -16,7 +16,8 @@
           <div class="restaurant">
           <a id="{{place.name}}" href="?expand={{place.uuid}}">
           <h2>{{place.name}}{%if place.name_en%}{{place.name_en}}{%endif%}</h2>{% if place.city %}{{place.city|title}}{% endif %}
-          {%if place.cuisine%}{{place.cuisine|title }}{%endif%}
+          {% if place['addr:full'] %} {{place['addr:full']}}{% endif %}{%if place.cuisine%}{{place.cuisine|title }}{%endif%}
+          {% if phone %} {{place.phone}} {% endif %}
           </a>
           <hr>
           </div>
@@ -24,7 +25,7 @@
           <h2>{{place.name}}{%if place.name_en%}{{place.name_en}}{%endif%}</h2>{% if place.city %}{{place.city|title}}<br>{% endif %}
           {%if place.cuisine%}{{place.cuisine|title }}<br>{%endif%}
           {%if place.opening_hours%}{{place.opening_hours}}{%endif%}
-          {%if place.outdoor_seating==yes%}Outdoor Seating{%endif%}{%if place.website%}{{place.website}}{%endif%}
+          {%if place.outdoor_seating==yes%}Outdoor Seating{%endif%}{%if place.website%}{{place.website}}{%endif%}<br>
           {# {{place.expandable_menu}}{{place.english_friendly}} #}
           <a class="pure-button" href="?reserve={{place.uuid}}"> Request Reservation </a>
           <br>
@@ -64,16 +65,18 @@
           Data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a>
           {% elif reservation_submitted %}
             Your reservation for {{reservation_submitted}} is being requested<br>
-          {% else %}
+          {% elif not restaurant %}
             Place not found <br><br>
             <a class="pure-button" href="?reserve_freeform=yes"> Freeform Reservation</a><br>
             Click here to make a reservation for a restaurant that is not in our database
           {% endif %}
           {% if reserve %}
           {# can add javascript for realtime hinting #}
+          {% for place in restaurant %}
           <form class="pure-form">
             <fieldset>
-              <input name="place" type="text" placeholder="Place" value="{{reserve}}">
+              <input name="place" type="text" placeholder="Place" value="{{place.name}}">
+              <input name="phone" type="text" placeholder="Phone" {% if place.phone %} value={{place.phone}} {% endif %}>
               <input name="name" type="text" placeholder="Name">
               <input name="party_size" type="text" placeholder="party size">
               <input name="date" type="date" placeholder="date">
@@ -82,6 +85,7 @@
               <button type="submit" class="pure-button pure-button-primary">Reserve</button>
             </fieldset>
           </form>
+          {% endfor %}
           {% endif %}
     {% endblock %}
     {% block js %}
