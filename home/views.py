@@ -12,6 +12,7 @@ def index(request):
     context = {}
     context['static'] = '/static'
     context['restaurant'] = place.objects.all()[:5]
+    # search handling
     if request.GET.get('search'):
         # location from geoip2
         search = request.GET.get('search')
@@ -21,9 +22,9 @@ def index(request):
             context['restaurant'] = search_result
         else:
             context['restaurant']= ''
+    # expand restaurant that user clicked on
     if request.GET.get('expand'):
         context['expand'] = request.GET.get('expand')
-        # use uuid for lookup, keep search results and only expand selected one ideally
         context['restaurant'] = place.objects.filter(uuid=request.GET.get('expand'))
         print(context)
         point_qs = list(place.objects.filter(uuid=request.GET.get('expand')))
@@ -35,7 +36,8 @@ def index(request):
         location = location.coords
         print(location)
         context['location'] = location
-    # need to login to create reservation
+    # reservation handling
+    # reservation form for logged in users, fields prefilled with restaurant data
     if request.GET.get('reserve') and request.user.is_authenticated:
         reserve_place = request.GET.get('reserve')
         context['reserve'] = request.GET.get('reserve')
@@ -43,9 +45,11 @@ def index(request):
     # freeform reservation
     elif request.GET.get('reserve_freeform') and request.user.is_authenticated:
         return render(request, 'reservation_freeform.html', context)
+    # redirect not logged in user to login before reserving
     elif request.GET.get('reserve'):
         messages.error(request, 'You must be logged in to reserve')
         return redirect('/login')
+    # reservation form submitted
     if request.GET.get('reservation_submitted'):
         context['reservation_submitted'] = request.GET.get('place')
         p = request.GET.get('place')
@@ -60,6 +64,7 @@ def index(request):
         except ValidationError as e:
             messages.error('e')
         r.save()
+    # freeform reservation form submitted
     elif request.GET.get('reservation_freeform_submitted'):
         context['reservation_submitted'] = request.GET.get('place')
         p = request.GET.get('place')
@@ -101,10 +106,11 @@ def login_view(request):
         messages.success(request, 'Login Successfull')
         # redirect to page they came from
         return redirect('/')
-    # login not yet tried
+    # redirect logged in user
     elif request.user.is_authenticated and request.method == 'GET':
         messages.info(request, "You're already logged in")
         return redirect('/')
+    # login not yet tried
     elif request.method == 'GET' and user is None:
         return render(request, 'login.html',context)
     # failed login
@@ -132,6 +138,7 @@ def register(request):
         invite_code = request.POST.get('invite_code')
         invite_code_caller = 'isaac caller'
         invite_code_user = 'isaac'
+        # user registration handling
         if invite_code == invite_code_user and not caller:
             user = User(username=username, email=email, password=password, first_name=first_name, last_name=last_name)
             try:
@@ -143,9 +150,11 @@ def register(request):
                 messages.info(request, 'User created')
                 return redirect('/login')
             messages.error(request, 'Username taken')
+        # user tries to mark as caller
         elif invite_code == invite_code_user and caller:
             meassages.error(request, 'You marked caller but have a user invite code')
-        elif invite_code == invite_code_caller : # not working
+        # caller registration
+        elif invite_code == invite_code_caller :
             user = User(username=username, email=email, password=password, first_name=first_name, last_name=last_name)
             try:
                 user.full_clean()
@@ -155,7 +164,7 @@ def register(request):
                 User.objects.create_user(username=username, email=email, password=password, first_name=first_name, last_name=last_name)
                 messages.info(request, 'User created')
                 group = Group.objects.get(name="callers")
-                #group.user_set.add(user)
+                user = User.objects.get(username=username)
                 user.groups.add(group)
                 return redirect('/login')
     else:
@@ -168,14 +177,16 @@ def register(request):
 def account(request):
     context = {}
     context['static'] = '/static'
+    # caller accounts
     if request.user.is_authenticated and request.user.has_perm('reservation.can_accept_calls'):
         context['user'] = user
         context['reservations'] = reservation.objects.filter(caller='')
+    # user accounts
     elif request.user.is_authenticated:
         user = get_user(request)
-        print('not caller')
         context['user'] = get_user(request)
         context['reservations'] = reservation.objects.filter(requested_by_user=user.username)
+    # logged out users
     else:
         messages.info(request,"You're not logged in")
         return redirect('/')

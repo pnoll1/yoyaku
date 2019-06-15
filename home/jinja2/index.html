@@ -69,9 +69,9 @@
             Place not found <br><br>
             <a class="pure-button" href="?reserve_freeform=yes"> Freeform Reservation</a><br>
             Click here to make a reservation for a restaurant that is not in our database
-          {% endif %}
-          {% if reserve %}
+            {% endif %}
           {# can add javascript for realtime hinting #}
+          {% if reserve %}
           {% for place in restaurant %}
           <form class="pure-form">
             <fieldset>
