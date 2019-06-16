@@ -4,6 +4,7 @@ from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.models import User, Group
 from django.contrib import messages
 from django.core.exceptions import ValidationError
+from django.db.models import Q
 from .models import place, reservation
 import psycopg2
 from django.contrib.gis.gdal import SpatialReference, CoordTransform
@@ -51,14 +52,16 @@ def index(request):
         return redirect('/login')
     # reservation form submitted
     if request.GET.get('reservation_submitted'):
+        # add validation that reservation at least 30 minutes in future
         context['reservation_submitted'] = request.GET.get('place')
         p = request.GET.get('place')
+        phone = request.GET.get('phone')
         name = request.GET.get('name')
         party_size = request.GET.get('party_size')
         time = request.GET.get('time')
         date = request.GET.get('date')
         current_user = request.user
-        r = reservation(requested_by_user=current_user,name_reservation=name, name_restaurant=p, party_size=party_size, date=date, time=time, request_completed=False)
+        r = reservation(requested_by_user=current_user.username, phone=phone, name_reservation=name, name_restaurant=p, party_size=party_size, date=date, time=time, request_completed=False)
         try:
             r.full_clean
         except ValidationError as e:
@@ -178,14 +181,59 @@ def account(request):
     context = {}
     context['static'] = '/static'
     # caller accounts
-    if request.user.is_authenticated and request.user.has_perm('reservation.can_accept_calls'):
+    if request.user.is_authenticated and request.user.has_perm('home.can_accept_calls'):
+        user = get_user(request)
         context['user'] = user
-        context['reservations'] = reservation.objects.filter(caller='')
+
+        context['reservations'] = reservation.objects.filter(Q(request_completed=False), Q(caller='') | Q(caller=user.username))
+        if request.POST.get('accepted'):
+            uuid = request.POST.get('uuid')
+            r = reservation.objects.get(uuid=uuid)
+            caller=user.username
+            r.caller=caller
+            try:
+                r.full_clean
+            except ValidationError as e:
+                messages.error('e')
+            r.save()
+        if request.POST.get('completed'):
+            uuid = request.POST.get('uuid')
+            r = reservation.objects.get(uuid=uuid)
+            r.request_completed=True
+            try:
+                r.full_clean
+            except ValidationError as e:
+                messages.error('e')
+            r.save()
+        return render(request, 'account_caller.html', context)
     # user accounts
     elif request.user.is_authenticated:
         user = get_user(request)
         context['user'] = get_user(request)
         context['reservations'] = reservation.objects.filter(requested_by_user=user.username)
+        if request.method == 'POST':
+            uuid = request.POST.get('uuid')
+            p = request.GET.get('place')
+            phone = request.GET.get('phone')
+            name = request.GET.get('name')
+            party_size = request.GET.get('party_size')
+            time = request.GET.get('time')
+            date = request.GET.get('date')
+            r = reservation.objects.get(uuid=uuid)
+            if r.caller:
+                messges.error(request, 'Your reservation has been or is being made. Updating is not allowed')
+                return render(request, 'account.html',context)
+            r.p = place
+            r.phone = phone
+            r.name = name
+            r.party_size = party_size
+            r.time = time
+            r.date = date
+            try:
+                r.full_clean
+            except ValidationError as e:
+                messages.error('e')
+            r.save()
     # logged out users
     else:
         messages.info(request,"You're not logged in")

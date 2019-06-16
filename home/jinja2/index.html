@@ -76,7 +76,7 @@
           <form class="pure-form">
             <fieldset>
               <input name="place" type="text" placeholder="Place" value="{{place.name}}">
-              <input name="phone" type="text" placeholder="Phone" {% if place.phone %} value={{place.phone}} {% endif %}>
+              <input name="phone" type="text" placeholder="Phone" {% if place.phone %} value={{place.phone|replace(' ','') }} {% endif %}>
               <input name="name" type="text" placeholder="Name">
               <input name="party_size" type="text" placeholder="party size">
               <input name="date" type="date" placeholder="date">

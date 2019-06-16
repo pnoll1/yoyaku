@@ -38,6 +38,7 @@ class reservation(models.Model):
     date = models.DateField(default=now)
     caller = models.TextField(blank=True)
     request_completed = models.BooleanField()
+    uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     # restaurant uuid should be tied to res as well OneToOneField
 
 
