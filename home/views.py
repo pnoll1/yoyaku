@@ -67,23 +67,7 @@ def index(request):
         except ValidationError as e:
             messages.error('e')
         r.save()
-    # freeform reservation form submitted
-    elif request.GET.get('reservation_freeform_submitted'):
-        context['reservation_submitted'] = request.GET.get('place')
-        p = request.GET.get('place')
-        phone = request.GET.get('phone')
-        name = request.GET.get('name')
-        party_size = request.GET.get('party_size')
-        time = request.GET.get('time')
-        date = request.GET.get('date')
-        current_user = request.user
-        r = reservation(requested_by_user=current_user, phone=phone, name_reservation=name, name_restaurant=p, party_size=party_size, date=date, time=time, request_completed=False)
-        try:
-            r.full_clean()
-        except ValidationError as e:
-            messages.error('e')
-        r.save()
-        context['restaurant'] = ''
+        messages.info(request, "Your reservation is being requested")
     return render(request, 'index.html',context)
 
 def search(request):
@@ -210,22 +194,28 @@ def account(request):
     elif request.user.is_authenticated:
         user = get_user(request)
         context['user'] = get_user(request)
-        context['reservations'] = reservation.objects.filter(requested_by_user=user.username)
+        context['reservations'] = reservation.objects.filter(Q(requested_by_user=user.username), Q(request_completed=False))
+        # update reservation
         if request.method == 'POST':
             uuid = request.POST.get('uuid')
-            p = request.GET.get('place')
-            phone = request.GET.get('phone')
-            name = request.GET.get('name')
-            party_size = request.GET.get('party_size')
-            time = request.GET.get('time')
-            date = request.GET.get('date')
+            if request.POST.get('cancel'):
+                r = reservation.objects.get(uuid=uuid)
+                r.delete()
+                messages.info(request,'Reservation Deleted')
+                return render(request, 'account.html',context)
+            name_restaurant = request.POST.get('name_restaurant')
+            phone = request.POST.get('phone')
+            name_reservation = request.POST.get('name_reservation')
+            party_size = request.POST.get('party_size')
+            time = request.POST.get('time')
+            date = request.POST.get('date')
             r = reservation.objects.get(uuid=uuid)
             if r.caller:
                 messges.error(request, 'Your reservation has been or is being made. Updating is not allowed')
                 return render(request, 'account.html',context)
-            r.p = place
+            r.name_restaurant = name_restaurant
             r.phone = phone
-            r.name = name
+            r.name_reservation = name_reservation
             r.party_size = party_size
             r.time = time
             r.date = date
@@ -234,6 +224,12 @@ def account(request):
             except ValidationError as e:
                 messages.error('e')
             r.save()
+            messages.info(request,'Reservation updated')
+            return render(request, 'account.html',context)
+        # show reservation details
+        if request.GET.get('expand'):
+            context['expand'] = request.GET.get('expand')
+            return render(request, 'account.html',context)
     # logged out users
     else:
         messages.info(request,"You're not logged in")

@@ -63,8 +63,6 @@
           {% endif %}
           {% endfor %}
           Data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a>
-          {% elif reservation_submitted %}
-            Your reservation for {{reservation_submitted}} is being requested<br>
           {% elif not restaurant %}
             Place not found <br><br>
             <a class="pure-button" href="?reserve_freeform=yes"> Freeform Reservation</a><br>

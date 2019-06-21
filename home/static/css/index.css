@@ -25,6 +25,11 @@ h2 {
   color: #777;
 }
 
+.reservation {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+
 .hidden {
   display: none;
 }

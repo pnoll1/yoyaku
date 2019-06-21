@@ -19,20 +19,35 @@
     <li>payment info</li>
   </ul>
   {% for reservation in reservations %}
+  {% if not expand %}
+  <a class="reservation no-hover pure-button pure-button-primary" href="?expand={{reservation.uuid}}">{{reservation.name_restaurant}} {{reservation.time}}</a>
+  <br>
+  {% endif %}
+  {% if expand == reservation.uuid|safe %}
   {% if not reservation.caller %}
   <form class="pure-form" method="post">
     <fieldset>
-      <input name="place" type="text" placeholder="Place" value="{{reservation.name_restaurant}}">
+      {{ csrf_input }}
+      <input name="name_restaurant" type="text" placeholder="Place" value="{{reservation.name_restaurant}}">
       <input name="phone" type="text" placeholder="Phone" value={{reservation.phone|replace(' ','') }}>
-      <input name="name" type="text" placeholder="Name" value = {{reservation.name_reservation}}>
+      <input name="name_reservation" type="text" placeholder="Name" value = {{reservation.name_reservation}}>
       <input name="party_size" type="text" placeholder="party size" value = {{reservation.party_size}}>
       <input name="date" type="date" placeholder="date" value = {{reservation.date}}>
       <input name="time" type="time" placeholder="time" value = {{reservation.time}}>
-      <input name="uuid" type="hidden" value={{ reservation.uuid }} >
+      <input name="uuid" type="hidden" value= {{reservation.uuid}} >
       <br>
       <button type="submit" class="pure-button pure-button-primary">Update</button>
     </fieldset>
   </form>
+  <form class="pure-form" method="post">
+    <fieldset>
+      {{ csrf_input }}
+      <input name="uuid" type="hidden" value= {{reservation.uuid}}>
+      <input name="cancel" type="hidden" value='yes'>
+      <button type="submit" class="pure-button pure-button-primary">Cancel Reservation</button>
+    </fieldset>
+  </form>
+  {% endif %}
   {% endif %}
   {% if reservation.caller and not reservation.request_completed %}
   Your reservation for {{reservation.name_restaurant}} at {{reservation.time}} on {{reservation.date}}
