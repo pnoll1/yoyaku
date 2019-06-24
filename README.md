@@ -49,27 +49,8 @@
  - run migrations to setup reservation table
  - python manage.py runserver
  - good to go
-## Setup using current files
- - python3 -m venv env
- - . env/bin/activate
- - pip install -r requirements.txt
- - python manage.py createsuperuser
- - install postgresql and postgis
- - login to postgresql superuser, usually named postgres, may have to login to root then change to postgres if postgres has no password
- - psql -c "create database reservation;"
- - psql -d reservation
- - CREATE EXTENSION postgis;
- - create extension “uuid-ossp”; allows uuid_generate_v4();
- - create user pat with password 'password';
- - \q enter  to exit psql
- - install osm2pgsql
- - osm2pgsql --slim --username pat --database reservation nagoya_data.osm -S ./utils/restaurant.style
- - login to postgresql superuser
- - grant all on planet_osm_point to pat;
- - ALTER TABLE reservation ADD uuid uuid default uuid_generate_v4();
- - ./manage.py makemigrations
- - ./manage.py migrate
- - any issues delete everything in migrations and rerun migrations and migrate
- - ./manage.py runserver
- - website available at localhost:8000
- - localhost:8000/admin, login as superuser to manage db data graphically if needed
+## Setup using Vagrant
+ - vagrant up
+ - vagrant ssh
+ - run setupssh.sh
+ - site available at localhost:8000
