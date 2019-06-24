@@ -37,28 +37,9 @@
           <script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js"
           integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og=="
           crossorigin=""></script>
-          <script>
-          var loc = {{location|tojson}};
-          var baselayers, ways, nodes, controls_layers, mymap, overlays, mapbox;
-
-          //var mapbox = L.tileLayer('https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}', {
-          var mapbox = L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token={accessToken}', {
-              attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a>, Imagery © <a href="http://mapbox.com">Mapbox</a>',
-              minZoom: 10,
-              maxZoom: 18,
-              id: 'mapbox.streets',
-              accessToken: 'pk.eyJ1IjoicG5vbGwiLCJhIjoiY2pkNDNyNmtzMHRtOTMzcWZ0Y2szdzh3eCJ9.g8tszbsYH0bVCcj7v8RAEQ'
-          });
-          var baselayers = {
-              "Mapbox": mapbox
-          }
-          var mymap = L.map('map', {
-              center: [loc[1],loc[0]],
-              zoom: 15,
-              layers: [mapbox]
-          });
-          L.marker([loc[1],loc[0]],).addTo(mymap);
-          </script>
+          {# pass location to JavaScript, then create map#}
+          <script>var loc = {{location|tojson}};</script>
+          <script src="{{static}}/js/map.js"></script>
 
           {% endif %}
           {% endfor %}
@@ -68,23 +49,7 @@
             <a class="pure-button" href="?reserve_freeform=yes"> Freeform Reservation</a><br>
             Click here to make a reservation for a restaurant that is not in our database
             {% endif %}
-          {# can add javascript for realtime hinting #}
-          {% if reserve %}
-          {% for place in restaurant %}
-          <form class="pure-form">
-            <fieldset>
-              <input name="place" type="text" placeholder="Place" value="{{place.name}}">
-              <input name="phone" type="text" placeholder="Phone" {% if place.phone %} value={{place.phone|replace(' ','') }} {% endif %}>
-              <input name="name" type="text" placeholder="Name">
-              <input name="party_size" type="text" placeholder="party size">
-              <input name="date" type="date" placeholder="date">
-              <input name="time" type="time" placeholder="time">
-              <input name="reservation_submitted" type="hidden" value="yes">
-              <button type="submit" class="pure-button pure-button-primary">Reserve</button>
-            </fieldset>
-          </form>
-          {% endfor %}
-          {% endif %}
+
     {% endblock %}
     {% block js %}
     {% endblock %}

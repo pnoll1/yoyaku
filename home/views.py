@@ -8,6 +8,19 @@ from django.db.models import Q
 from .models import place, reservation
 import psycopg2
 from django.contrib.gis.gdal import SpatialReference, CoordTransform
+import datetime
+import re
+
+# Japan timezone class
+class Utc9(datetime.tzinfo):
+    _offset = datetime.timedelta(hours=9)
+    _dst = datetime.timedelta(0)
+    def utcoffset(self,dt):
+        return self.__class__._offset
+    def dst(self, dt):
+        return self.__class__._dst
+
+utc9 = Utc9()
 
 def index(request):
     context = {}
@@ -43,9 +56,13 @@ def index(request):
         reserve_place = request.GET.get('reserve')
         context['reserve'] = request.GET.get('reserve')
         context['restaurant'] = place.objects.filter(uuid=reserve_place)
+        context['date'] = datetime.datetime.now(utc9).date()
+        return render(request, 'reservation.html', context)
     # freeform reservation
     elif request.GET.get('reserve_freeform') and request.user.is_authenticated:
-        return render(request, 'reservation_freeform.html', context)
+        context['restaurant'] = ''
+        context['date'] = datetime.datetime.now(utc9).date()
+        return render(request, 'reservation.html', context)
     # redirect not logged in user to login before reserving
     elif request.GET.get('reserve'):
         messages.error(request, 'You must be logged in to reserve')
@@ -62,6 +79,17 @@ def index(request):
         date = request.GET.get('date')
         current_user = request.user
         r = reservation(requested_by_user=current_user.username, phone=phone, name_reservation=name, name_restaurant=p, party_size=party_size, date=date, time=time, request_completed=False)
+        # validate reservation date and time
+        date = datetime.date.fromisoformat(date)
+        time = datetime.time.fromisoformat(time)
+        d = datetime.datetime.combine(date,time,utc9)
+        if (datetime.datetime.now(utc9) - datetime.timedelta(minutes=30)) > d:
+            messages.error(request, 'Your reservation must be in the future')
+            return render(request, 'index.html',context)
+        # validate phone number starts with + and has 11-13 digits(11 is geographic numbers, 13 is not geographic)
+        if not re.fullmatch(r'^[+]\d{11-13}',phone):
+            messages.error(request, 'You must give full number with country code including +')
+            return render(request, 'index.html',context)
         try:
             r.full_clean
         except ValidationError as e:
