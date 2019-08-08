@@ -5,9 +5,10 @@ from django.contrib.auth.models import User, Group
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.db.models import Q
-from .models import place, reservation
+from .models import place, reservation, place_staging
 import psycopg2
 from django.contrib.gis.gdal import SpatialReference, CoordTransform
+from django.contrib.gis.geos import Point
 import datetime
 import re
 
@@ -21,6 +22,7 @@ class Utc9(datetime.tzinfo):
         return self.__class__._dst
 
 utc9 = Utc9()
+
 
 def index(request):
     context = {}
@@ -40,7 +42,6 @@ def index(request):
     if request.GET.get('expand'):
         context['expand'] = request.GET.get('expand')
         context['restaurant'] = place.objects.filter(uuid=request.GET.get('expand'))
-        print(context)
         point_qs = list(place.objects.filter(uuid=request.GET.get('expand')))
         for i in point_qs:
             var = i
@@ -48,35 +49,34 @@ def index(request):
         ct = CoordTransform(SpatialReference(3857), SpatialReference(4326))
         location.transform(ct)
         location = location.coords
-        print(location)
         context['location'] = location
     # reservation handling
     # reservation form for logged in users, fields prefilled with restaurant data
-    if request.GET.get('reserve') and request.user.is_authenticated:
+    if request.method == "GET" and request.GET.get('reserve') and request.user.is_authenticated:
         reserve_place = request.GET.get('reserve')
         context['reserve'] = request.GET.get('reserve')
         context['restaurant'] = place.objects.filter(uuid=reserve_place)
         context['date'] = datetime.datetime.now(utc9).date()
         return render(request, 'reservation.html', context)
     # freeform reservation
-    elif request.GET.get('reserve_freeform') and request.user.is_authenticated:
+    elif request.method == "GET" and request.GET.get('reserve_freeform') and request.user.is_authenticated:
         context['restaurant'] = ''
         context['date'] = datetime.datetime.now(utc9).date()
         return render(request, 'reservation.html', context)
     # redirect not logged in user to login before reserving
-    elif request.GET.get('reserve'):
+    elif request.method == "GET" and request.GET.get('reserve') or request.GET.get('reserve_freeform'):
         messages.error(request, 'You must be logged in to reserve')
         return redirect('/login')
     # reservation form submitted
-    if request.GET.get('reservation_submitted'):
+    if request.method=="POST":
         # add validation that reservation at least 30 minutes in future
-        context['reservation_submitted'] = request.GET.get('place')
-        p = request.GET.get('place')
-        phone = request.GET.get('phone')
-        name = request.GET.get('name')
-        party_size = request.GET.get('party_size')
-        time = request.GET.get('time')
-        date = request.GET.get('date')
+        context['reservation_submitted'] = request.POST.get('place')
+        p = request.POST.get('place')
+        phone = request.POST.get('phone')
+        name = request.POST.get('name')
+        party_size = request.POST.get('party_size')
+        time = request.POST.get('time')
+        date = request.POST.get('date')
         current_user = request.user
         r = reservation(requested_by_user=current_user.username, phone=phone, name_reservation=name, name_restaurant=p, party_size=party_size, date=date, time=time, request_completed=False)
         # validate reservation date and time
@@ -87,16 +87,72 @@ def index(request):
             messages.error(request, 'Your reservation must be in the future')
             return render(request, 'index.html',context)
         # validate phone number starts with + and has 11-13 digits(11 is geographic numbers, 13 is not geographic)
-        if not re.fullmatch(r'^[+]\d{11-13}',phone):
-            messages.error(request, 'You must give full number with country code including +')
-            return render(request, 'index.html',context)
+        #if not re.fullmatch(r'^[+]\d{11-13}',phone):
+        #    messages.error(request, 'You must give full number with country code including +')
+        #    return render(request, 'index.html',context)
         try:
-            r.full_clean
+            r.full_clean()
         except ValidationError as e:
-            messages.error('e')
+            messages.error(request, e)
+            return render(request, 'index.html', context)
         r.save()
+        # send data to add_place page
+        if request.POST.get('place_in_db'):
+            messages.info(request, "Your reservation is being requested")
+            add_place_and_queries = '/add_place' + '?name=' + p + '&phone=' + phone
+            return redirect(add_place_and_queries)
         messages.info(request, "Your reservation is being requested")
     return render(request, 'index.html',context)
+
+def add_place(request):
+    context = {}
+    context['static'] = '/static'
+    # give center point for map
+    point_qs = list(place.objects.filter(uuid='1143bb6c-7b58-4c16-80ff-08bfa59dcda3'))
+    for i in point_qs:
+        var = i
+    location = var.way
+    ct = CoordTransform(SpatialReference(3857), SpatialReference(4326))
+    location.transform(ct)
+    location = location.coords
+    context['location'] = location
+    # place succesfully added
+    if request.GET.get('success')=='yes':
+        messages.info(request, 'Thanks for helping us improve! Place will be added after verification')
+        return redirect('/')
+    # place not added, add message and reload page with info
+    elif request.GET.get('success')=='no':
+        name = request.GET.get('name')
+        phone = request.GET.get('phone')
+        context['name'] = name
+        context['phone'] = phone
+        messages.info(request, 'Place not added, did you select a location?')
+        return render(request, 'add_place.html' , context)
+    current_user = request.user
+    name = request.GET.get('name')
+    phone = request.GET.get('phone')
+    context['name'] = name
+    context['phone'] = phone
+    # get lat, long and translate for saving in db
+    queries = request.GET.dict()
+    if 'place_loc' in queries.keys():
+        place_loc = queries['place_loc']
+        place_loc = place_loc.split(',')
+        n=0
+        for i in place_loc:
+            place_loc[n]=float(i)
+            n += 1
+        place_point = Point(place_loc)
+        ct = CoordTransform(SpatialReference(4326), SpatialReference(3857))
+        place_point.transform(ct)
+        p = place_staging(requested_by_user=current_user, name=name, phone=phone, way=place_point)
+        try:
+            p.full_clean()
+        except ValidationError as e:
+            messages.error(request, e)
+            return render(request, 'add_place.html',context)
+        p.save()
+    return render(request, 'add_place.html',context)
 
 def search(request):
     context = {}
@@ -135,6 +191,7 @@ def login_view(request):
 
 def logout_view(request):
     logout(request)
+    messages.success(request, 'Logout Successfull')
     return redirect('/')
 
 def register(request):
@@ -175,6 +232,7 @@ def register(request):
                 user.full_clean()
             except ValidationError as e:
                 messages.error(request,e)
+                return render(request, 'register.html',context)
             if not User.objects.filter(username=username):
                 User.objects.create_user(username=username, email=email, password=password, first_name=first_name, last_name=last_name)
                 messages.info(request, 'User created')
@@ -204,18 +262,20 @@ def account(request):
             caller=user.username
             r.caller=caller
             try:
-                r.full_clean
+                r.full_clean()
             except ValidationError as e:
-                messages.error('e')
+                messages.error(request, e)
+                return render(request, 'account.html', context)
             r.save()
         if request.POST.get('completed'):
             uuid = request.POST.get('uuid')
             r = reservation.objects.get(uuid=uuid)
             r.request_completed=True
             try:
-                r.full_clean
+                r.full_clean()
             except ValidationError as e:
-                messages.error('e')
+                messages.error(request, e)
+                return render(request, 'account_caller.html', context)
             r.save()
         return render(request, 'account_caller.html', context)
     # user accounts
@@ -248,9 +308,10 @@ def account(request):
             r.time = time
             r.date = date
             try:
-                r.full_clean
+                r.full_clean()
             except ValidationError as e:
-                messages.error('e')
+                messages.error(request, e)
+                return render(request, 'account.html',context)
             r.save()
             messages.info(request,'Reservation updated')
             return render(request, 'account.html',context)
@@ -273,5 +334,3 @@ def map(request):
     context = {}
     context['static'] = '/static'
     return render(request, 'map.html',context)
-#
-# translators use admin interface

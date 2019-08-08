@@ -24,9 +24,8 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = key
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
-
-ALLOWED_HOSTS = ['192.168.1.3','localhost']#'localhost']
+DEBUG = False
+ALLOWED_HOSTS = ['192.168.1.3','localhost', 'brads.hopto.org']
 
 
 # Application definition

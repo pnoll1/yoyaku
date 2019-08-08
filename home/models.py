@@ -17,7 +17,6 @@ class place(models.Model):
     #menu = models.TextField(blank=True)
     phone = models.TextField(blank=True)
     #osm_id
-    city = models.TextField()
     way = models.PointField()
 
     def __str__(self):
@@ -49,6 +48,26 @@ class reservation(models.Model):
         permissions=(
         ('can_accept_calls', 'can accept calls'),
         )
+
+class place_staging(models.Model):
+    uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.TextField()
+    requested_by_user = models.TextField(default='anon')
+    #name_en = models.TextField(blank=True)
+    #city = models.TextField(blank=True)
+    #cuisine  = models.TextField(blank=True)
+    #opening_hours = models.TextField(blank=True)
+    #english_friendly = models.BooleanField(blank=True)
+    #outdoor_seating = models.BooleanField(blank=True)
+    #website = models.TextField(blank=True)
+    # link to menu in static folder
+    #menu = models.TextField(blank=True)
+    phone = models.TextField()
+    #osm_id
+    way = models.PointField()
+
+    def __str__(self):
+        return self.name
 
 #class myUser(AbstractUser):
 #    name_first = models.TextField()

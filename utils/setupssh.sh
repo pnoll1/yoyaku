@@ -1,8 +1,9 @@
 #!/bin/sh
 # run vargrant up then vagrant ssh into box and run this script
+python3 -m venv
 . bin/activate
 pip3 install -r requirements.txt
-python manage.py createsuperuser --username admin --password admin
+python manage.py createsuperuser --username admin #--password admin
 su root
 su postgres
 psql -c "create database reservation"

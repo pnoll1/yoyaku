@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+  {% block head %}
+  {% endblock %}
+  {% block search %}
+  <form class="pure-form">
+    <fieldset>
+      <input id="search" name="search" type="text" placeholder="Restaurant Name">
+      <button id="search-button" type="submit" class="pure-button pure-button-primary" onclick="getLocation()">Go</button>
+    </fieldset>
+  </form>
+  {% endblock %}
+  {% block content %}
+          <h2>{{name}}{%if name_en%}{{name_en}}{%endif%}</h2>{% if city %}{{city|title}}<br>{% endif %}
+          {%if cuisine%}{{cuisine|title }}<br>{%endif%}{{phone}}
+          {%if opening_hours%}{{opening_hours}}{%endif%}
+          {%if outdoor_seating==yes%}Outdoor Seating{%endif%}{%if website%}{{website}}{%endif%}<br>
+          {# {{expandable_menu}}{{english_friendly}} #}
+
+          <br>
+          <h2>Help other people find this Restaurant!</h2>
+          <p>Select spot on map where restaurant is located and click Add Place</p>
+          <div id="map"></div>
+          <link rel="stylesheet" href="https://unpkg.com/leaflet@1.5.1/dist/leaflet.css"
+          integrity="sha512-xwE/Az9zrjBIphAcBb3F6JVqxf46+CDLwfLMHloNu6KEQCAWi6HcDUbeOfBIptF7tcCzusKFjFw2yuvEpDL9wQ=="
+          crossorigin=""/>
+          <script src="https://unpkg.com/leaflet@1.5.1/dist/leaflet.js"
+          integrity="sha512-GffPMF3RvMeYyc1LWMHtK8EbPv0iNZ8/oTtHPx9/cc2ILxQ+u905qIwdpULaqDkyBKgOaB57QTMg7ztg8Jm2Og=="
+          crossorigin=""></script>
+          {# pass location to JavaScript, then create map#}
+          <script>var loc = {{location|tojson}};
+            var name = {{name|tojson}};
+            var phone = {{phone|tojson}};
+          </script>
+          <script src="{{static}}/js/add_to_map.js"></script>
+          <br>
+          <button class="pure-button" onclick="sendToDb()"> Add Place </button>
+    {% endblock %}
+    {% block js %}
+    {% endblock %}

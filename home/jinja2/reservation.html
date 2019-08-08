@@ -11,9 +11,10 @@
   {% endblock %}
   {% block content %}
   {# empty form #}
-  {% if not restaurant %}
-  <form class="pure-form">
+  {% if restaurant=='' %}
+  <form class="pure-form" method="post">
     <fieldset>
+      {{ csrf_input }}
       <input name="place" type="text" placeholder="Place">
       <input name="phone" type="text" placeholder="Phone">
       <input name="name" type="text" placeholder="Name">
@@ -21,6 +22,7 @@
       <input name="date" type="date" placeholder="date" value={{date}}>
       <input name="time" type="time" placeholder="time">
       <input name="reservation_submitted" type="hidden" value="yes">
+      <input name="place_in_db" type="hidden" value="no">
       <button type="submit" class="pure-button pure-button-primary">Reserve</button>
     </fieldset>
   </form>
@@ -29,8 +31,9 @@
   {# form prefilled with restaurant info #}
   {% if restaurant %}
   {% for place in restaurant %}
-          <form class="pure-form">
+          <form class="pure-form" method="post">
             <fieldset>
+              {{ csrf_input }}
               <input name="place" type="text" placeholder="Place" {% if place.name %} value={{place.name}} {% endif %}>
               <input name="phone" type="text" placeholder="Phone" {% if place.phone %} value={{place.phone|replace(' ','') }} {% endif %}>
               <input name="name" type="text" placeholder="Name">
