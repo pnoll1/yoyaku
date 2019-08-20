@@ -26,6 +26,11 @@ class place(models.Model):
         managed = False
         db_table = 'planet_osm_point'
 
+# class acceptable_times(models.Model):
+#    acceptable_time = models.DateTimeField()
+#
+#    def __str__(self):
+#        return self.acceptable_time
 
 class reservation(models.Model):
     requested_by_user = models.TextField()
@@ -38,7 +43,11 @@ class reservation(models.Model):
     caller = models.TextField(blank=True)
     request_completed = models.BooleanField()
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    # restaurant uuid should be tied to res as well OneToOneField
+    acceptable_time = models.DateTimeField(blank=True, null=True)
+    accepted_time = models.DateTimeField(blank=True, null=True)
+
+    # manytomany migration not working https://code.djangoproject.com/ticket/25012?
+    # acceptable_times = models.ManyToManyField(acceptable_times)
 
 
     def __str__(self):
@@ -48,6 +57,7 @@ class reservation(models.Model):
         permissions=(
         ('can_accept_calls', 'can accept calls'),
         )
+
 
 class place_staging(models.Model):
     uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

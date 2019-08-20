@@ -11,19 +11,27 @@ mapbox = L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/
 baselayers = {
     "Mapbox": mapbox
 };
+
 mymap = L.map('map', {
     center: [loc[1], loc[0]],
-    zoom: 14,
+    zoom: 15,
     layers: [mapbox]
 });
+
+// tries to locate user on page load
+mymap.locate({ setView: true, enableHighAccuracy: true });
+mymap.on('locationerror', onLocationError);
+function onLocationError(e) {
+  alert(e.message);
+}
 
 var markerGroup = L.layerGroup().addTo(mymap);
 
 mymap.on('click', function(ev) {
     markerGroup.clearLayers();
-    //store as long lat as needed for database
-    place_loc = [ev.latlng.lng, ev.latlng.lat]
-    L.marker([ev.latlng.lat, ev.latlng.lng],).addTo(markerGroup)
+    // store as long lat as needed for database
+    place_loc = [ev.latlng.lng, ev.latlng.lat];
+    L.marker([ev.latlng.lat, ev.latlng.lng],).addTo(markerGroup);
     markerGroup.addTo(mymap);
 });
 
@@ -34,15 +42,13 @@ function sendToDb() {
     .then(res => {
       if (res.ok) {
       window.location = 'add_place?success=yes';
-      }
-      else if (res.ok == false) {
+      } else if (res.ok == false) {
         window.location = 'add_place' + queries;
       }
     })
     .catch(err => 'add_place?success=no');
-  }
-  else {
-    let queries = '?name=' + String(name) + '&phone=' + String(phone)
+  } else {
+    let queries = '?name=' + String(name) + '&phone=' + String(phone);
     window.location = 'add_place' + queries + '&success=no';
   }
 }

@@ -23,33 +23,48 @@ class Utc9(datetime.tzinfo):
 
 utc9 = Utc9()
 
+# restaurant search
+def search(request):
+    context = {}
+    context['static'] = '/static'
+    search = request.GET.get('search')
+    search_result = place.objects.filter(name__icontains=search)
+    if search_result:
+        context['restaurant']= search_result
+    else:
+        context['restaurant']= ''
+    return render(request, 'index.html',context)
+
+def restaurant_location_to_4326(uuid):
+    point_qs = list(place.objects.filter(uuid=uuid))
+    for i in point_qs:
+        var = i
+    location = var.way
+    ct = CoordTransform(SpatialReference(3857), SpatialReference(4326))
+    location.transform(ct)
+    location = location.coords
+    return location
 
 def index(request):
     context = {}
     context['static'] = '/static'
-    context['restaurant'] = place.objects.all()[:5]
-    # search handling
-    if request.GET.get('search'):
-        # location from geoip2
-        search = request.GET.get('search')
-        # add geolocation to search, paginate results
-        search_result = place.objects.filter(name__icontains=search)
-        if search_result:
-            context['restaurant'] = search_result
-        else:
-            context['restaurant']= ''
+    #context['restaurant'] = place.objects.all()[:5]
     # expand restaurant that user clicked on
     if request.GET.get('expand'):
         context['expand'] = request.GET.get('expand')
         context['restaurant'] = place.objects.filter(uuid=request.GET.get('expand'))
-        point_qs = list(place.objects.filter(uuid=request.GET.get('expand')))
-        for i in point_qs:
-            var = i
-        location = var.way
-        ct = CoordTransform(SpatialReference(3857), SpatialReference(4326))
-        location.transform(ct)
-        location = location.coords
-        context['location'] = location
+        context['location'] = restaurant_location_to_4326(request.GET.get('expand'))
+        return render(request, 'index.html', context)
+    if request.GET.get('search'):
+        return search(request)
+    # blank reservation form on first load
+    if request.method == "GET" and not request.GET.get('reserve') and request.user.is_authenticated:
+        context['restaurant'] = ''
+        context['date'] = datetime.datetime.now(utc9).date()
+        return render(request, 'reservation.html', context)
+    if request.method == "GET" and not request.GET.get('reserve'):
+        messages.error(request, 'You must be logged in to reserve')
+        return redirect('/login')
     # reservation handling
     # reservation form for logged in users, fields prefilled with restaurant data
     if request.method == "GET" and request.GET.get('reserve') and request.user.is_authenticated:
@@ -64,7 +79,7 @@ def index(request):
         context['date'] = datetime.datetime.now(utc9).date()
         return render(request, 'reservation.html', context)
     # redirect not logged in user to login before reserving
-    elif request.method == "GET" and request.GET.get('reserve') or request.GET.get('reserve_freeform'):
+    elif request.method == "GET" and request.GET.get('reserve') or request.method == "GET" and request.GET.get('reserve_freeform'):
         messages.error(request, 'You must be logged in to reserve')
         return redirect('/login')
     # reservation form submitted
@@ -108,14 +123,7 @@ def add_place(request):
     context = {}
     context['static'] = '/static'
     # give center point for map
-    point_qs = list(place.objects.filter(uuid='1143bb6c-7b58-4c16-80ff-08bfa59dcda3'))
-    for i in point_qs:
-        var = i
-    location = var.way
-    ct = CoordTransform(SpatialReference(3857), SpatialReference(4326))
-    location.transform(ct)
-    location = location.coords
-    context['location'] = location
+    context['location'] = restaurant_location_to_4326('1143bb6c-7b58-4c16-80ff-08bfa59dcda3')
     # place succesfully added
     if request.GET.get('success')=='yes':
         messages.info(request, 'Thanks for helping us improve! Place will be added after verification')
@@ -153,17 +161,6 @@ def add_place(request):
             return render(request, 'add_place.html',context)
         p.save()
     return render(request, 'add_place.html',context)
-
-def search(request):
-    context = {}
-    context['static'] = '/static'
-    search = request.POST.get('search')
-    search_result = point.objects.fiter(name=search)
-    if search_result:
-        context['restaurant']= search_result
-    else:
-        context[search_result]= 'Place not found'
-    return render(request, 'index.html',context)
 
 def login_view(request):
     context = {}
@@ -224,7 +221,7 @@ def register(request):
             messages.error(request, 'Username taken')
         # user tries to mark as caller
         elif invite_code == invite_code_user and caller:
-            meassages.error(request, 'You marked caller but have a user invite code')
+            messages.error(request, 'You marked caller but have a user invite code')
         # caller registration
         elif invite_code == invite_code_caller :
             user = User(username=username, email=email, password=password, first_name=first_name, last_name=last_name)
@@ -235,7 +232,7 @@ def register(request):
                 return render(request, 'register.html',context)
             if not User.objects.filter(username=username):
                 User.objects.create_user(username=username, email=email, password=password, first_name=first_name, last_name=last_name)
-                messages.info(request, 'User created')
+                messages.info(request, 'User with caller permissions created')
                 group = Group.objects.get(name="callers")
                 user = User.objects.get(username=username)
                 user.groups.add(group)
@@ -247,6 +244,9 @@ def register(request):
     context['static'] = '/static'
     return render(request, 'register.html',context)
 
+# Update
+# Cancel
+# accept revised time
 def account(request):
     context = {}
     context['static'] = '/static'
@@ -254,8 +254,37 @@ def account(request):
     if request.user.is_authenticated and request.user.has_perm('home.can_accept_calls'):
         user = get_user(request)
         context['user'] = user
-
-        context['reservations'] = reservation.objects.filter(Q(request_completed=False), Q(caller='') | Q(caller=user.username))
+        context['accepted_reservations'] = reservation.objects.filter(caller=user.username)
+        context['reservations'] = reservation.objects.filter(Q(request_completed=False), Q(caller=''))
+        context['my_reservations'] = reservation.objects.filter(Q(requested_by_user=user.username), Q(request_completed=False))
+        # update personal reservations
+        if request.POST.get('name_restaurant'):
+            uuid = request.POST.get('uuid')
+            name_restaurant = request.POST.get('name_restaurant')
+            phone = request.POST.get('phone')
+            name_reservation = request.POST.get('name_reservation')
+            party_size = request.POST.get('party_size')
+            time = request.POST.get('time')
+            date = request.POST.get('date')
+            r = reservation.objects.get(uuid=uuid)
+            if r.caller:
+                messages.error(request, 'Your reservation has been or is being made. Updating is not allowed')
+                return render(request, 'account.html',context)
+            r.name_restaurant = name_restaurant
+            r.phone = phone
+            r.name_reservation = name_reservation
+            r.party_size = party_size
+            r.time = time
+            r.date = date
+            try:
+                r.full_clean()
+            except ValidationError as e:
+                messages.error(request, e)
+                return render(request, 'account.html',context)
+            r.save()
+            messages.info(request,'Reservation Updated')
+            return render(request, 'account.html',context)
+        # accepted work
         if request.POST.get('accepted'):
             uuid = request.POST.get('uuid')
             r = reservation.objects.get(uuid=uuid)
@@ -265,8 +294,49 @@ def account(request):
                 r.full_clean()
             except ValidationError as e:
                 messages.error(request, e)
-                return render(request, 'account.html', context)
+                return render(request, 'account_caller.html', context)
             r.save()
+            messages.success(request, 'Work Accepted')
+        # original time doesn't work
+        if request.POST.get('new_time_needed'):
+            uuid = request.POST.get('uuid')
+            context['date_today'] = datetime.datetime.now(utc9).date()
+            context['new_time_needed'] = 'yes'
+            context['uuid'] = uuid
+            return render(request, 'account_caller.html', context)
+        # caller inputs possible times from restaurant
+        if request.POST.get('acceptable_time'):
+            uuid = request.POST.get('uuid')
+            acceptable_date = request.POST.get('acceptable_date')
+            acceptable_time = request.POST.get('acceptable_time')
+            acceptable_date = datetime.date.fromisoformat(acceptable_date)
+            acceptable_time = datetime.time.fromisoformat(acceptable_time)
+            d = datetime.datetime.combine(acceptable_date,acceptable_time,utc9)
+            # time validation
+            r = reservation.objects.get(uuid=uuid)
+            r.acceptable_time = d
+            try:
+                r.full_clean()
+            except ValidationError as e:
+                messages.error(request, e)
+                return render(request, 'account_caller.html', context)
+            r.save()
+            messages.success(request, 'Reservation Updated')
+        # accept revised time
+        if request.POST.get('accepted_time'):
+            uuid = request.POST.get('uuid')
+            accepted_time = request.POST.get('accepted_time')
+            accepted_time = accepted_time.replace('_', ' ')
+            r = reservation.objects.get(uuid=uuid)
+            r.accepted_time = accepted_time
+            try:
+                r.full_clean()
+            except ValidationError as e:
+                messages.error(request, e)
+                return render(request, 'account_caller.html', context)
+            r.save()
+            messages.success(request, 'Reservation Updated')
+        # reservation completed
         if request.POST.get('completed'):
             uuid = request.POST.get('uuid')
             r = reservation.objects.get(uuid=uuid)
@@ -277,20 +347,26 @@ def account(request):
                 messages.error(request, e)
                 return render(request, 'account_caller.html', context)
             r.save()
+        # cancel reservation
+        if request.POST.get('cancel'):
+            uuid = request.POST.get('uuid')
+            r = reservation.objects.get(uuid=uuid)
+            r.delete()
+            messages.info(request,'Reservation Deleted')
+            return render(request, 'account.html',context)
+        # show reservation details
+        if request.GET.get('expand'):
+            context['expand'] = request.GET.get('expand')
+            return render(request, 'account_caller.html',context)
         return render(request, 'account_caller.html', context)
     # user accounts
     elif request.user.is_authenticated:
         user = get_user(request)
         context['user'] = get_user(request)
-        context['reservations'] = reservation.objects.filter(Q(requested_by_user=user.username), Q(request_completed=False))
+        context['my_reservations'] = reservation.objects.filter(Q(requested_by_user=user.username), Q(request_completed=False))
         # update reservation
-        if request.method == 'POST':
+        if request.method == 'POST' and request.POST.get('name_restaurant'):
             uuid = request.POST.get('uuid')
-            if request.POST.get('cancel'):
-                r = reservation.objects.get(uuid=uuid)
-                r.delete()
-                messages.info(request,'Reservation Deleted')
-                return render(request, 'account.html',context)
             name_restaurant = request.POST.get('name_restaurant')
             phone = request.POST.get('phone')
             name_reservation = request.POST.get('name_reservation')
@@ -313,8 +389,28 @@ def account(request):
                 messages.error(request, e)
                 return render(request, 'account.html',context)
             r.save()
-            messages.info(request,'Reservation updated')
+            messages.info(request,'Reservation Updated')
             return render(request, 'account.html',context)
+        if request.POST.get('cancel'):
+            uuid = request.POST.get('uuid')
+            r = reservation.objects.get(uuid=uuid)
+            r.delete()
+            messages.info(request,'Reservation Deleted')
+            return render(request, 'account.html',context)
+        # accept revised time
+        if request.POST.get('accepted_time'):
+            uuid = request.POST.get('uuid')
+            accepted_time = request.POST.get('accepted_time')
+            accepted_time = accepted_time.replace('_', ' ')
+            r = reservation.objects.get(uuid=uuid)
+            r.accepted_time = accepted_time
+            try:
+                r.full_clean()
+            except ValidationError as e:
+                messages.error(request, e)
+                return render(request, 'account.html', context)
+            r.save()
+            messages.success(request, 'Reservation Updated')
         # show reservation details
         if request.GET.get('expand'):
             context['expand'] = request.GET.get('expand')

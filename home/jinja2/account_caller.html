@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends 'account.html' %}
   {% block head %}
   {% endblock %}
   {% block search %}
@@ -9,15 +9,46 @@
     </fieldset>
   </form>
   {% endblock %}
-  {% block content %}
-  <ul>
-    <li>Username:{{user.username}}</li>
-    <li>First Name: {{user.first_name}}</li>
-    <li>Last Name: {{user.last_name}}</li>
-    <li>Email : {{user.email}}</li>
-    <li>change password</li>
-    <li>payment info</li>
-  </ul>
+  {% block caller %}
+  <h3> Accepted Work </h3>
+  {% for reservation in accepted_reservations %}
+  {{reservation.name_reservation}}
+  {{reservation.name_restaurant}}
+  {{ reservation.party_size}}
+  {{reservation.time}}
+  {{reservation.date}}
+  {{reservation.phone}}
+  {% if reservation.acceptable_time and not reservation.accepted_time %}
+  <br>
+  Acceptable Time: {{reservation.acceptable_time}}
+  {% endif %}
+  {% if reservation.accepted_time %}
+  <br>
+  User has accepted new time of: {{reservation.accepted_time}}
+  {% endif %}
+  <form class="pure-form" method="post">
+    <fieldset>
+      {{ csrf_input }}
+      <label for="completed">
+      <input name="completed" type="checkbox" value="yes"> Completed
+      {% if reservation.uuid|safe != uuid|safe %}
+      </label>
+      <label for="new_time_needed">
+      <input name="new_time_needed" type="checkbox" value="yes"> Time Doesn't Work
+      </label>
+      {% endif %}
+      {# acceptable time input #}
+      {% if reservation.uuid|safe == uuid|safe %}
+      <input name="acceptable_date" type="date" placeholder="date" value={{date_today}}>
+      <input name="acceptable_time" type="time" placeholder="time">
+      {% endif %}
+      <input name="uuid" type="hidden" value={{ reservation.uuid }} >
+      <button type="submit" class="pure-button pure-button-primary">Submit</button>
+    </fieldset>
+  </form>
+  {% endfor %}
+  <hr>
+  <h3> Unclaimed Work </h3>
   {% for reservation in reservations %}
   {{reservation.name_reservation}}
   {{reservation.name_restaurant}}
@@ -33,12 +64,7 @@
       <input name="accepted" type="checkbox"> Accept Work
       </label>
       {% endif %}
-      {% if reservation.caller %} Work Accepted {% endif %}
-      <label for="completed">
-      <input name="completed" type="checkbox" value="yes"> Completed
-      </label>
       <input name="uuid" type="hidden" value={{ reservation.uuid }} >
-      <br>
       <button type="submit" class="pure-button pure-button-primary">Submit</button>
     </fieldset>
   </form>

@@ -18,13 +18,13 @@
     <li>change password</li>
     <li>payment info</li>
   </ul>
-  {% for reservation in reservations %}
-  {% if not expand %}
+  <h3> My Reservations </h3>
+  {% for reservation in my_reservations %}
+  {% if not expand and not reservation.caller%}
   <a class="reservation no-hover pure-button pure-button-primary" href="?expand={{reservation.uuid}}">{{reservation.name_restaurant}} {{reservation.time}}</a>
   <br>
   {% endif %}
   {% if expand == reservation.uuid|safe %}
-  {% if not reservation.caller %}
   <form class="pure-form" method="post">
     <fieldset>
       {{ csrf_input }}
@@ -48,12 +48,32 @@
     </fieldset>
   </form>
   {% endif %}
-  {% endif %}
+  {# caller making reservation #}
   {% if reservation.caller and not reservation.request_completed %}
+  <br>
   Your reservation for {{reservation.name_restaurant}} at {{reservation.time}} on {{reservation.date}}
   is being made.
+  {% if reservation.acceptable_time and not reservation.accepted_time %}
+  <br>
+  Restaurant suggested time: {{reservation.acceptable_time}} {{reservation.acceptable_time|replace(' ', '') }}
+  <form class="pure-form" method="post">
+    <fieldset>
+      {{ csrf_input }}
+      <input name ="accepted_time" type="hidden" value= {{reservation.acceptable_time|replace(' ', '_')|safe }}>
+      <input name="uuid" type="hidden" value= {{reservation.uuid}}>
+      <button type="submit" class="pure-button pure-button-primary">Accept New Time</button>
+    </fieldset>
+  </form>
+  {% endif %}
+  {# suggested time accepted #}
+  {% if reservation.accepted_time %}
+  Caller is updating reservation for {{reservation.name_restaurant}} to {{reservation.accepted_time}}
+  {% endif %}
   {% endif %}
   {% endfor %}
+  {% block caller %}
+  {% endblock %}
     {% endblock %}
+
     {% block js %}
     {% endblock %}
